@@ -23,6 +23,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.lang.ref.WeakReference;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -171,7 +173,7 @@ public class FileDataStore extends AbstractDataStore
         File temporary = null;
         try {
             temporary = newTemporaryFile();
-            log.debug("Created new temporary file " + temporary.getAbsolutePath());
+            log.info("Created new temporary file " + temporary.getAbsolutePath());
             DataIdentifier tempId = new DataIdentifier(temporary.getName());
             usesIdentifier(tempId);
             // Copy the stream to the temporary file and calculate the
@@ -182,32 +184,51 @@ public class FileDataStore extends AbstractDataStore
                     new FileOutputStream(temporary), digest);
             try {
                 length = IOUtils.copyLarge(input, output);
-                log.debug("InputStream copied to the temporary file");
+                log.info("InputStream copied to the temporary file");
             } finally {
                 output.close();
             }
+
             DataIdentifier identifier =
                     new DataIdentifier(encodeHexString(digest.digest()));
+
+            File dummy = directory.getParentFile().getParentFile().getParentFile();
+            dummy = new File(dummy, identifier.toString());
+            log.info("Created new dummy file " + dummy.getAbsolutePath());
+
+            OutputStream outputDummy = new DigestOutputStream(
+                    new FileOutputStream(dummy), digest);
+            try {
+                IOUtils.copyLarge(input, outputDummy);
+                log.info("InputStream copied to the dummy file");
+            } finally {
+                outputDummy.close();
+            }
+
             File file;
-            log.debug("Temporary file exists = " + temporary.exists());
+            log.info("Temporary file exists = " + temporary.exists());
+            log.info("Dummy file exists = " + dummy.exists());
 
             synchronized (this) {
                 // Check if the same record already exists, or
                 // move the temporary file in place if needed
-                log.debug("Inside the synchronized block");
-                log.debug("Temporary file exists = " + temporary.exists());
+                log.info("Inside the synchronized block");
+                log.info("Temporary file exists = " + temporary.exists());
+                log.info("Dummy file exists = " + dummy.exists());
                 usesIdentifier(identifier);
                 file = getFile(identifier);
                 if (!file.exists()) {
-                    log.debug("File " + file.getAbsolutePath() + " does not exist, will create it.");
-                    log.debug("Temporary file exists = " + temporary.exists());
+                    log.info("File " + file.getAbsolutePath() + " does not exist, will create it.");
+                    log.info("Temporary file exists = " + temporary.exists());
+                    log.info("Dummy file exists = " + dummy.exists());
                     File parent = file.getParentFile();
                     parent.mkdirs();
-                    log.debug("Temp file permissions - read=" + temporary.canRead() + " write=" + temporary.canWrite() + " execute=" + temporary.canExecute());
+                    log.info("Temp file permissions - read=" + temporary.canRead() + " write=" + temporary.canWrite() + " execute=" + temporary.canExecute());
+                    log.info("Dummy file permissions - read=" + dummy.canRead() + " write=" + dummy.canWrite() + " execute=" + dummy.canExecute());
                     if (temporary.renameTo(file)) {
                         // no longer need to delete the temporary file
-                        log.debug("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
-                        log.debug(temporary.getAbsolutePath() + " renamed to " + file.getAbsolutePath());
+                        log.info("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
+                        log.info(temporary.getAbsolutePath() + " renamed to " + file.getAbsolutePath());
                         temporary = null;
                     } else {
                         throw new IOException(
@@ -216,7 +237,7 @@ public class FileDataStore extends AbstractDataStore
                                 + " (media read only?)");
                     }
                 } else {
-                    log.debug("File " + file.getAbsolutePath() + " already exists.");
+                    log.info("File " + file.getAbsolutePath() + " already exists.");
                     long now = System.currentTimeMillis();
                     if (getLastModified(file) < now + ACCESS_TIME_RESOLUTION) {
                         setLastModified(file, now + ACCESS_TIME_RESOLUTION);
@@ -258,7 +279,7 @@ public class FileDataStore extends AbstractDataStore
     private File getFile(DataIdentifier identifier) {
         usesIdentifier(identifier);
         String string = identifier.toString();
-        log.debug("getFile " + string);
+        log.info("getFile " + string);
         File file = directory;
         file = new File(file, string.substring(0, 2));
         file = new File(file, string.substring(2, 4));
@@ -311,7 +332,7 @@ public class FileDataStore extends AbstractDataStore
                     break;
                 }
                 boolean deleted = parent.delete();
-                log.debug("Deleted parent [{}] of file [{}]: {}",
+                log.info("Deleted parent [{}] of file [{}]: {}",
                         new Object[]{parent, file.getAbsolutePath(), deleted});
                 parent = parent.getParentFile();
             }
@@ -403,7 +424,7 @@ public class FileDataStore extends AbstractDataStore
             String name = f.getName();
             identifiers.add(new DataIdentifier(name));
         }
-        log.debug("Found " + identifiers.size() + " identifiers.");
+        log.info("Found " + identifiers.size() + " identifiers.");
         return identifiers.iterator();
     }
 
