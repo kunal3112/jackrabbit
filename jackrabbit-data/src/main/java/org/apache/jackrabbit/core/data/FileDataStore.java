@@ -173,7 +173,7 @@ public class FileDataStore extends AbstractDataStore
         File temporary = null;
         try {
             temporary = newTemporaryFile();
-            log.info("Created new temporary file " + temporary.getAbsolutePath());
+            log.debug("Created new temporary file " + temporary.getAbsolutePath());
             DataIdentifier tempId = new DataIdentifier(temporary.getName());
             usesIdentifier(tempId);
             // Copy the stream to the temporary file and calculate the
@@ -184,39 +184,39 @@ public class FileDataStore extends AbstractDataStore
                     new FileOutputStream(temporary), digest);
             try {
                 length = IOUtils.copyLarge(input, output);
-                log.info("InputStream copied to the temporary file");
+                log.debug("InputStream copied to the temporary file");
             } finally {
                 output.close();
             }
-            log.info("OutputStream closed");
-            log.info("Temp file permissions - read=" + temporary.canRead() + " write=" + temporary.canWrite() + " execute=" + temporary.canExecute());
+            log.debug("OutputStream closed");
+            log.debug("Temp file permissions - read=" + temporary.canRead() + " write=" + temporary.canWrite() + " execute=" + temporary.canExecute());
 
             DataIdentifier identifier =
                     new DataIdentifier(encodeHexString(digest.digest()));
 
-            log.info("Created data identifier " + identifier);
+            log.debug("Created data identifier " + identifier);
 
             File file;
-            log.info("Temporary file exists = " + temporary.exists());
+            log.debug("Temporary file exists = " + temporary.exists());
 
             synchronized (this) {
                 // Check if the same record already exists, or
                 // move the temporary file in place if needed
-                log.info("Inside the synchronized block");
-                log.info("Temporary file exists = " + temporary.exists());
+                log.debug("Inside the synchronized block");
+                log.debug("Temporary file exists = " + temporary.exists());
                 usesIdentifier(identifier);
                 file = getFile(identifier);
                 if (!file.exists()) {
-                    log.info("File " + file.getAbsolutePath() + " does not exist, will create it.");
-                    log.info("Temporary file exists = " + temporary.exists());
+                    log.debug("File " + file.getAbsolutePath() + " does not exist, will create it.");
+                    log.debug("Temporary file exists = " + temporary.exists());
                     File parent = file.getParentFile();
                     parent.mkdirs();
-                    log.info("Temp file permissions - read=" + temporary.canRead() + " write=" + temporary.canWrite() + " execute=" + temporary.canExecute());
-                    log.info("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
+                    log.debug("Temp file permissions - read=" + temporary.canRead() + " write=" + temporary.canWrite() + " execute=" + temporary.canExecute());
+                    log.debug("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
                     try {
                         Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                        log.info("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
-                        log.info(temporary.getAbsolutePath() + " renamed to " + file.getAbsolutePath());
+                        log.debug("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
+                        log.debug(temporary.getAbsolutePath() + " renamed to " + file.getAbsolutePath());
                         temporary = null;
                     } catch (IOException e) {
                         throw new IOException(
@@ -225,7 +225,7 @@ public class FileDataStore extends AbstractDataStore
                                         + " (media read only?)");
                     }
                 } else {
-                    log.info("File " + file.getAbsolutePath() + " already exists.");
+                    log.debug("File " + file.getAbsolutePath() + " already exists.");
                     long now = System.currentTimeMillis();
                     if (getLastModified(file) < now + ACCESS_TIME_RESOLUTION) {
                         setLastModified(file, now + ACCESS_TIME_RESOLUTION);
