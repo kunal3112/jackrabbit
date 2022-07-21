@@ -2,7 +2,7 @@
 Welcome to Apache Jackrabbit  <http://jackrabbit.apache.org/>
 =============================================================
 
-Apache Jackrabbit is a fully conforming implementation of the
+Hi! Apache Jackrabbit is a fully conforming implementation of the
 Content Repository for Java Technology API (JCR, specified in
 JSR 170 and 283).
 
