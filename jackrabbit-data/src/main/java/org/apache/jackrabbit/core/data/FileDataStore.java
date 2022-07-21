@@ -24,8 +24,6 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.lang.ref.WeakReference;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
@@ -197,35 +195,24 @@ public class FileDataStore extends AbstractDataStore
                     new DataIdentifier(encodeHexString(digest.digest()));
 
             log.info("Created data identifier " + identifier);
-            File dummy = directory.getParentFile().getParentFile();
-            dummy = new File(identifier.toString());
-            try {
-                Files.copy(input, dummy.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new IOException("Cannot copy input stream to dummy file.");
-            }
 
             File file;
             log.info("Temporary file exists = " + temporary.exists());
-            //log.info("Dummy file exists = " + dummy.exists());
 
             synchronized (this) {
                 // Check if the same record already exists, or
                 // move the temporary file in place if needed
                 log.info("Inside the synchronized block");
                 log.info("Temporary file exists = " + temporary.exists());
-                //log.info("Dummy file exists = " + dummy.exists());
                 usesIdentifier(identifier);
                 file = getFile(identifier);
                 if (!file.exists()) {
                     log.info("File " + file.getAbsolutePath() + " does not exist, will create it.");
                     log.info("Temporary file exists = " + temporary.exists());
-                    //log.info("Dummy file exists = " + dummy.exists());
                     File parent = file.getParentFile();
                     parent.mkdirs();
                     log.info("Temp file permissions - read=" + temporary.canRead() + " write=" + temporary.canWrite() + " execute=" + temporary.canExecute());
                     log.info("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
-                    log.info("Dummy file permissions - read=" + dummy.canRead() + " write=" + dummy.canWrite() + " execute=" + dummy.canExecute());
                     try {
                         Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
                         log.info("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
@@ -237,17 +224,6 @@ public class FileDataStore extends AbstractDataStore
                                         + " to " + file.getAbsolutePath()
                                         + " (media read only?)");
                     }
-                    /*if (temporary.renameTo(file)) {
-                        // no longer need to delete the temporary file
-                        log.info("Dest file permissions - read=" + file.canRead() + " write=" + file.canWrite() + " execute=" + file.canExecute());
-                        log.info(temporary.getAbsolutePath() + " renamed to " + file.getAbsolutePath());
-                        temporary = null;
-                    } else {
-                        throw new IOException(
-                                "Can not rename " + temporary.getAbsolutePath()
-                                + " to " + file.getAbsolutePath()
-                                + " (media read only?)");
-                    }*/
                 } else {
                     log.info("File " + file.getAbsolutePath() + " already exists.");
                     long now = System.currentTimeMillis();
@@ -291,7 +267,6 @@ public class FileDataStore extends AbstractDataStore
     private File getFile(DataIdentifier identifier) {
         usesIdentifier(identifier);
         String string = identifier.toString();
-        log.info("getFile " + string);
         File file = directory;
         file = new File(file, string.substring(0, 2));
         file = new File(file, string.substring(2, 4));
@@ -344,7 +319,7 @@ public class FileDataStore extends AbstractDataStore
                     break;
                 }
                 boolean deleted = parent.delete();
-                log.info("Deleted parent [{}] of file [{}]: {}",
+                log.debug("Deleted parent [{}] of file [{}]: {}",
                         new Object[]{parent, file.getAbsolutePath(), deleted});
                 parent = parent.getParentFile();
             }
@@ -436,7 +411,7 @@ public class FileDataStore extends AbstractDataStore
             String name = f.getName();
             identifiers.add(new DataIdentifier(name));
         }
-        log.info("Found " + identifiers.size() + " identifiers.");
+        log.debug("Found " + identifiers.size() + " identifiers.");
         return identifiers.iterator();
     }
 
